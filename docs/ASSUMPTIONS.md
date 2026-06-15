@@ -26,6 +26,38 @@ the *scientific meaning* of a result are escalated to the user.
   JAX's functional RNG means we only set legacy global state and validate the
   key; functional keys are derived per-call from the root seed.
 
+## Phase 1 — Spec + Simulator
+
+- **ODE RHS as sympy strings** (`ODETerm.expr`). Keeps `ModelSpec` JSON
+  round-trippable and enables symbolic structural analysis (canonicalization,
+  the linear transfer-function fast path) and dimensional analysis.
+- **Observation `divide_by`.** The observation may divide a state by a volume
+  parameter (amount -> concentration). This is what makes the closed-form
+  invariant `AUC_0->inf = Dose/CL` exact for an amount compartment.
+- **CanonicalForm = structural graph key.** Reparameterization-invariance is
+  achieved by deriving a typed directed graph (transfers from Jacobian
+  sparsity, eliminations from net flux, observation marker) and hashing its
+  canonical labeling. Parameter names/values/coordinates never enter the key.
+  Verified: macro<->micro, linear<->log, and renaming all hash identically;
+  first-order vs Michaelis-Menten elimination and 1c vs 2c differ. `kappa(J)`
+  is deliberately not used (it fails reparam-invariance, per the brief).
+- **diffrax requires float64 + `ForwardMode` adjoint.** PK needs x64 (enabled on
+  import). The default diffrax adjoint is reverse-mode only and cannot be
+  driven by `jax.jacfwd`; forward sensitivities use `diffrax.ForwardMode`.
+  Validated against scipy finite differences (rtol 1e-3).
+- **Single `SaveAt(ts=...)` solve; times as JAX arrays.** Passing sample times
+  as Python floats made each a compile-time constant, triggering one XLA
+  compilation per time — slow, and it reliably SIGABRT-ed the XLA CPU compiler
+  on this host (kernel 5.4) once compilations accumulated across the test
+  session. Integrating the whole grid in one solve with array-valued times
+  fixed both. Recorded as the reason behind the diffrax-backend structure.
+- **Phase 1 dosing = single IV bolus at t=0.** The diffrax fast path raises
+  `NotImplementedError` for t>0 boluses; the scipy reference backend handles
+  timed boluses correctly. Infusion/oral/transit absorption arrive with the
+  curriculum (Phase 7).
+- **Solver default `Kvaerno5`** (implicit, stiff-capable) for TMDD/PBPK later;
+  scipy cross-check uses `LSODA`. See ADR-0001.
+
 ## Known nondeterminism sources (cannot be fully eliminated)
 
 - **JAX/XLA**: reduction order on GPU/TPU is not bit-reproducible; results are
