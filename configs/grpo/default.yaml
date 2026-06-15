@@ -1,20 +1,24 @@
 # GRPO MVE training settings. Tuned for a single 24 GB Turing card (TITAN RTX):
-# 4-bit QLoRA, fp16 (no bf16), short completions, modest group size.
+# 4-bit QLoRA, fp16 (no bf16), short completions.
+#
+# Stronger config (after a 60-step run left the greedy policy unmoved, KL~0.005):
+# more steps, higher LR, NO KL anchor (beta=0), larger group, more exploration --
+# enough to actually shift greedy decisions on the small task set.
 model_name: Qwen/Qwen2.5-3B-Instruct
 output_dir: outputs/grpo
 reward_mode: full          # full | no_identify | fit_only
-num_generations: 6
-beta: 0.04                 # KL anchor to the reference policy
-learning_rate: 1.0e-5
-max_steps: 60
-per_device_train_batch_size: 6
-gradient_accumulation_steps: 2
+num_generations: 8         # group size for group-relative advantages
+beta: 0.0                  # no KL anchor: let the policy move on this MVE
+learning_rate: 5.0e-5
+max_steps: 150
+per_device_train_batch_size: 8
+gradient_accumulation_steps: 1
 max_completion_length: 96
-temperature: 0.9
-lora_r: 16
-lora_alpha: 32
+temperature: 1.0           # more exploration during rollouts
+lora_r: 32
+lora_alpha: 64
 lora_dropout: 0.05
 diversity_weight: 0.1      # entropy-over-canonical-forms bonus within a group
-dataset_repeats: 40
+dataset_repeats: 80
 seed: 0
 sigma_floor: 1.0e-9
