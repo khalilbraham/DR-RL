@@ -12,6 +12,11 @@ sensitivity_atol: 1.0e-5
 # Invariant #2: parameterization-invariance of identifiability.
 reparam_invariance_rtol: 1.0e-4
 
+# Identifiability (prediction-based, parameterization-invariant).
+identify_rank_rtol: 1.0e-6      # singular value cutoff (relative to largest) for rank
+identify_sigma_floor: 1.0e-9    # noise floor when the error model is degenerate
+identify_flat_threshold: 1.0e-3 # RMS standardized prediction change below this = flat
+
 # Invariant #5: mass-balance closure for closed systems.
 mass_balance_atol: 1.0e-8
 

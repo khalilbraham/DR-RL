@@ -8,12 +8,17 @@ from drrl.spec import (
     Compartment,
     Design,
     Dose,
+    ErrorModel,
     ModelSpec,
     ObservationModel,
     ODETerm,
     Parameter,
     Unit,
 )
+
+# A realistic proportional error model so noise-normalized analyses (e.g.
+# identifiability) use a meaningful SD rather than a degenerate floor.
+PROP_ERR = ErrorModel(kind="proportional", sigma_prop=0.1)
 
 MG = Unit(expr="mg")
 L = Unit(expr="L")
@@ -123,4 +128,48 @@ def iv_bolus_design(
     return Design(
         doses=(Dose(compartment=into, amount=amount, unit=MG, time=0.0),),
         sample_times=times,
+    )
+
+
+def held_out_battery(into: str = "A1") -> list[Design]:
+    """A small held-out design battery (varied doses + sample grids)."""
+    grids = ((0.25, 0.75, 1.5, 3.0, 6.0), (0.5, 1.0, 2.0, 5.0, 9.0, 14.0))
+    amounts = (50.0, 150.0)
+    return [iv_bolus_design(g, amount=a, into=into) for g in grids for a in amounts]
+
+
+def confound_product(p: float = 2.0, q: float = 3.0, v: float = 10.0) -> ModelSpec:
+    """1-comp whose elimination is ``-(p*q/V)*A1`` — p and q are confounded.
+
+    Only the product ``p*q`` and ``V`` affect predictions, so identifiable rank
+    is 2 of 3 parameters; the flat direction lies in the (p, q) plane.
+    """
+    return ModelSpec(
+        compartments=(Compartment(name="A1", unit=MG),),
+        odes=(ODETerm(target="A1", expr="-(p*q/V)*A1"),),
+        parameters=(
+            Parameter(name="p", value=p, unit=Unit(expr="dimensionless")),
+            Parameter(name="q", value=q, unit=PERH),
+            Parameter(name="V", value=v, unit=L),
+        ),
+        observation=ObservationModel(state="A1", divide_by="V", error=PROP_ERR),
+    )
+
+
+def confound_product_reparam(r: float = 6.0, v: float = 10.0) -> ModelSpec:
+    """Reparameterization of :func:`confound_product`: elimination ``-(r/V)*A1``.
+
+    Parameters are ``(r, q, V)`` with ``r = p*q``; here ``q`` does not appear in
+    the dynamics, so it is the unidentifiable direction. Same predictions, same
+    identifiable rank (2 of 3) — a non-trivial deficient-rank reparameterization.
+    """
+    return ModelSpec(
+        compartments=(Compartment(name="A1", unit=MG),),
+        odes=(ODETerm(target="A1", expr="-(r/V)*A1"),),
+        parameters=(
+            Parameter(name="r", value=r, unit=PERH),
+            Parameter(name="q", value=3.0, unit=PERH),
+            Parameter(name="V", value=v, unit=L),
+        ),
+        observation=ObservationModel(state="A1", divide_by="V", error=PROP_ERR),
     )
