@@ -9,6 +9,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # CI is CPU-only; force JAX onto CPU and silence the CUDA-jaxlib probe.
+  JAX_PLATFORMS: cpu
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -16,18 +20,23 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
       - name: Set up Python
         run: uv python install 3.11
 
-      - name: Sync dev environment (locked)
-        run: uv sync --locked --group dev
+      # The `sim` extra (JAX/diffrax, CPU wheels) is needed by the simulator
+      # tests and to type-check sim/. The heavy `rl` extra (CUDA torch) is left
+      # out: the RL tests are torch-free and the training code is no-cover.
+      - name: Sync environment (locked)
+        run: uv sync --locked --extra sim --group dev
 
       - name: Lint (ruff)
-        run: uv run ruff check src tests && uv run ruff format --check src tests
+        run: |
+          uv run ruff check src tests experiments
+          uv run ruff format --check src tests experiments
 
       - name: Type-check (mypy --strict)
         run: uv run mypy

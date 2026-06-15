@@ -15,7 +15,9 @@ import jax
 import numpy as np
 import sympy
 
-jax.config.update("jax_enable_x64", True)  # type: ignore[no-untyped-call]  # jax setter
+# The ignore codes cover both environments: with jax installed the setter is
+# untyped (no-untyped-call); without it, jax is Any and the ignore is unused.
+jax.config.update("jax_enable_x64", True)  # type: ignore[no-untyped-call, unused-ignore]
 
 import jax.numpy as jnp  # noqa: E402  (must follow x64 enable)
 
