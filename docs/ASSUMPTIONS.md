@@ -113,6 +113,31 @@ the *scientific meaning* of a result are escalated to the user.
 - **TMDD/PBPK/indirect-response deferred to Phase 7** (build order: not before
   the MVE loop is green).
 
+## Phase 4 — Env + warm-start
+
+- **Edit environment operates over a structure space** (one_compartment /
+  two_compartment / michaelis_menten) with typed transitions — `AddCompartment`
+  / `RemoveCompartment` (+/- compartment), `SwapKinetics` (first-order <-> MM),
+  `TuneParam`, `Commit`, `Abstain(design)`. Free-form ODE-string surgery is
+  deferred; this keeps Phase-4 tractable and fully tested while preserving the
+  multi-turn edit + commit/abstain dynamics.
+- **Partial observability**: the `Observation` exposes only the candidate's own
+  Tier-A gates, feedback, identifiability, and fit on the *shown* design — never
+  the reference, the hidden battery, or admissible labels (asserted by test).
+- **Determinism**: the environment is deterministic given the action sequence
+  (observed data are fixed reference predictions); episodes are replayable.
+  Stochastic stub policies are seeded.
+- **Layering note**: `policy` depends on `env` (it targets the env's
+  action/observation space); `env` does not import `policy` (no cycle). This
+  refines the sketch in the brief (which listed `env -> policy`).
+- **Reward computed only at termination** via the distinguishability-relative
+  reward, using the env-internal reference + hidden battery. Running out of turns
+  forces a commit-scored terminal.
+- **Warm-start without an LLM**: rejection sampling rolls out a `Policy` stub and
+  keeps trajectories above a reward threshold; `fit_sft` returns an
+  `ImitationPolicy` (structure->action table) on canonicalized targets. DoD test
+  confirms SFT+RS yields a policy that commits Tier-A-valid specs.
+
 ## Known nondeterminism sources (cannot be fully eliminated)
 
 - **JAX/XLA**: reduction order on GPU/TPU is not bit-reproducible; results are
