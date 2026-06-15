@@ -20,6 +20,32 @@ from drrl.spec import (
 # identifiability) use a meaningful SD rather than a degenerate floor.
 PROP_ERR = ErrorModel(kind="proportional", sigma_prop=0.1)
 
+
+def with_prop_error(spec: ModelSpec) -> ModelSpec:
+    """Return ``spec`` with a proportional (10%) observation error model."""
+    obs = spec.observation
+    return spec.model_copy(
+        update={
+            "observation": ObservationModel(
+                state=obs.state,
+                divide_by=obs.divide_by,
+                transform=obs.transform,
+                error=PROP_ERR,
+            )
+        }
+    )
+
+
+def add_unused_param(spec: ModelSpec, name: str = "dummy") -> ModelSpec:
+    """Return ``spec`` with one extra parameter that appears in no ODE.
+
+    Predictions are unchanged (so the model is fit-equivalent) but it is strictly
+    richer — used to test that parsimony tie-breaks toward the simpler model.
+    """
+    extra = Parameter(name=name, value=1.0, unit=Unit(expr="dimensionless"))
+    return spec.model_copy(update={"parameters": (*spec.parameters, extra)})
+
+
 MG = Unit(expr="mg")
 L = Unit(expr="L")
 LPH = Unit(expr="L/h")

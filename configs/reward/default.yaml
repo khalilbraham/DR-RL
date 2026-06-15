@@ -20,3 +20,11 @@ weights:
 abstain:
   wrong_commit_penalty: 1.0
   over_abstain_penalty: 0.3
+
+# Parsimony is gated: it only tie-breaks among models whose fit is at least this
+# good (so it can never rescue an under-fitting / empty model).
+fit_adequate_tau: 0.5
+# Admissible-set size at/above which abstention is the correct call.
+ambiguous_min_admissible: 2
+# Parsimony penalty per extra parameter beyond the reference complexity.
+parsimony_penalty_per_param: 0.1

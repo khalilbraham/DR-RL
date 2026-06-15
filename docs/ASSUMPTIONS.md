@@ -88,6 +88,31 @@ the *scientific meaning* of a result are escalated to the user.
   for abstention designs, with `resolves_ambiguity` gated by the chi-square
   quantile.
 
+## Phase 3 — Reward + synthetic data
+
+- **Reward total = `gate * sum_i w_i r_i`** with weights summing to 1 and every
+  component squashed to `[0,1]` (`safe01` maps NaN/inf -> 0). `assert_no_nan` is
+  called before returning, so no NaN reaches the optimizer.
+- **Parsimony is gated by fit adequacy** (`r_fit >= tau`): an under-fitting model
+  scores 0 parsimony and so can never win on simplicity (test:
+  `test_parsimony_cannot_collapse_model`). Among fit-adequate models it tie-breaks
+  toward fewer parameters.
+- **`r_fit` is scored only on the hidden battery** the agent never observed
+  (test records every simulated grid and asserts the observed grid is never
+  simulated, while hidden grids are).
+- **Abstention asymmetry**: wrong confident commit -> `1 - wrong_commit_penalty`
+  (0.0); over-abstaining -> `1 - over_abstain_penalty` (0.7); correct abstention
+  when ambiguous + a proposed design -> 1.0.
+- **`r_pd` reuses `r_fit`** in the MVE library (no separate PD observable yet);
+  it gains a real PD observable with effect/indirect-response models in Phase 7.
+- **Synthetic labels are cross-validated against the verifier**: identifiability
+  labels match `identifiability()` fractions and (in)distinguishability labels
+  match the oracle — the generator's ground truth is not taken on faith.
+- **`one_compartment` and `confounded` share a canonical key**: same *structure*,
+  different identifiability — a concrete instance of the equivalence-class idea.
+- **TMDD/PBPK/indirect-response deferred to Phase 7** (build order: not before
+  the MVE loop is green).
+
 ## Known nondeterminism sources (cannot be fully eliminated)
 
 - **JAX/XLA**: reduction order on GPU/TPU is not bit-reproducible; results are

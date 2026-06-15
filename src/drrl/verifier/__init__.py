@@ -21,6 +21,7 @@ from drrl.verifier.oed import (
     fisher_information,
     score_design,
 )
+from drrl.verifier.pipeline import tier_a_gates, verify
 from drrl.verifier.pkpd import compute_pk_metrics, hill, pkpd_metrics
 from drrl.verifier.plausibility import check_plausibility
 from drrl.verifier.report import (
@@ -69,4 +70,6 @@ __all__ = [
     "predictive_noncentrality",
     "score_design",
     "sensitivity_matrix",
+    "tier_a_gates",
+    "verify",
 ]
