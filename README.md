@@ -57,17 +57,32 @@ seeds live in `configs/` — there are no magic numbers in code.
 
 ## Build order (phased; each phase ends green or we stop and report)
 
-| Phase | Scope | DoD |
-|------:|-------|-----|
-| 0 | Foundations: uv, ruff, mypy(strict), pytest+cov, CI, utils, Hydra | `make check` green in CI |
-| 1 | `spec/` + `sim/` | closed-form sim tests; reparam canonicalization; sensitivities vs FD |
-| 2 | Verifier core (`units`, `execution`, `pkpd`, `plausibility`, **`distinguish`**, **`identify`**) | FP/FN on pair battery; identifiability invariant green |
-| 3 | `reward/` + `data/synth/` | NaN-safe gated reward; reward-hacking adversarial tests fail to hack |
-| 4 | `env/` + `rl/sft.py` + `rl/reject.py` | SFT+RS produces Tier-A-valid specs; deterministic episodes |
-| 5 | `rl/grpo.py` (**MVE**) | manipulation-check ablation reproduces; E-IRL beats fit-only GRPO |
-| 6 | `rl/prm.py` + edit search | PRM-shift experiment; multi-turn repair beats one-shot |
-| 7 | Scale (TMDD/PBPK) + `data/real/` + full `bench/` | curriculum + profile-likelihood labels + 14 tasks |
-| 8 | Validity gate + headline | reward-validity PASS/FAIL; reward-off internalization eval |
+| Phase | Scope | DoD | Status |
+|------:|-------|-----|--------|
+| 0 | Foundations: uv, ruff, mypy(strict), pytest+cov, CI, utils, Hydra | `make check` green in CI | ✅ |
+| 1 | `spec/` + `sim/` | closed-form sim tests; reparam canonicalization; sensitivities vs FD | ✅ |
+| 2 | Verifier core (`units`, `execution`, `pkpd`, `plausibility`, **`distinguish`**, **`identify`**) | FP/FN on pair battery; identifiability invariant green | ✅ |
+| 3 | `reward/` + `data/synth/` | NaN-safe gated reward; reward-hacking adversarial tests fail to hack | ✅ |
+| 4 | `env/` + `rl/sft.py` + `rl/reject.py` | SFT+RS produces Tier-A-valid specs; deterministic episodes | ✅ |
+| 5 | `rl/grpo.py` (**MVE**) | manipulation-check ablation reproduces; E-IRL beats fit-only GRPO | 🟡 in progress |
+| 6 | `rl/prm.py` + edit search | PRM-shift experiment; multi-turn repair beats one-shot | ⬜ |
+| 7 | Scale (TMDD/PBPK) + `data/real/` + full `bench/` | curriculum + profile-likelihood labels + 14 tasks | ⬜ |
+| 8 | Validity gate + headline | reward-validity PASS/FAIL; reward-off internalization eval | ⬜ |
+
+### Phase 5 MVE (GRPO) reproduce
+
+```bash
+uv sync --extra sim --extra rl --group dev          # cu124 torch + trl/peft/bnb
+export HF_HOME=/path/to/cache                        # model cache
+uv run python -m experiments.grpo_mve --modes full no_identify fit_only --max-steps 60
+```
+
+Trains QLoRA GRPO (Qwen2.5-3B-Instruct, 4-bit, fp16, single 24 GB GPU) under
+three reward modes and writes `outputs/grpo_mve/results.json`. The
+manipulation check: dropping `r_identify` ("no_identify") lowers the
+identifiability-aware reward and abstention on ambiguous cases vs the full
+reward. The reward-level version of this check runs GPU-free in
+`tests/rl/test_grpo_reward.py`.
 
 ## Repository layout
 

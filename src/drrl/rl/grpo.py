@@ -238,8 +238,14 @@ def train_grpo(
         bnb_4bit_compute_dtype=torch.float16,  # Turing: fp16, not bf16
         bnb_4bit_use_double_quant=True,
     )
+    # Load non-quantized params in fp16 (Qwen defaults to bf16, which the fp16
+    # AMP GradScaler cannot unscale on Turing). We also disable the AMP scaler
+    # below (fp16=False/bf16=False) and train the fp32 LoRA params directly.
     model = AutoModelForCausalLM.from_pretrained(
-        settings.model_name, quantization_config=quant, device_map={"": 0}
+        settings.model_name,
+        quantization_config=quant,
+        torch_dtype=torch.float16,
+        device_map={"": 0},
     )
     model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
     lora = LoraConfig(
@@ -273,7 +279,7 @@ def train_grpo(
         logging_steps=5,
         save_strategy="no",
         report_to=[],
-        fp16=True,
+        fp16=False,  # no AMP GradScaler (Turing can't unscale bf16); LoRA is fp32
         bf16=False,
         gradient_checkpointing=True,
         seed=settings.seed,
