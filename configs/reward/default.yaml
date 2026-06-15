@@ -1,0 +1,22 @@
+# Distinguishability-relative reward weights. Tier-A is a multiplicative gate,
+# not a weighted term. All component scores are squashed to [0,1] before
+# weighting; total is a convex combination. Tuned in Phase 3+; placeholders now.
+
+# Multiplicative gate (product of Tier-A booleans). Not weighted.
+gate_required: true
+
+weights:
+  r_eq: 0.25        # equivalence-class credit (distinguishability-relative)
+  r_fit: 0.20       # fit on the HIDDEN design battery
+  r_pk: 0.05        # PK metric agreement (AUC/Cmax/t1/2/CL)
+  r_pd: 0.05        # PD metric agreement (Emax/EC50/Hill/turnover)
+  r_identify: 0.20  # parameterization-invariant identifiable fraction
+  r_parsimony: 0.05 # tie-break ONLY within fit-equivalent models
+  r_abstain: 0.15   # calibrated abstention + experiment proposal
+  r_expl: 0.05      # explanation/feedback adherence
+
+# Abstention asymmetry: a confident wrong commit is penalized harder than
+# over-abstaining (penalty multipliers; Phase 3 calibration).
+abstain:
+  wrong_commit_penalty: 1.0
+  over_abstain_penalty: 0.3

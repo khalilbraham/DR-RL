@@ -1,0 +1,21 @@
+# Numerical tolerances. Tightened/justified per invariant in ASSUMPTIONS.md.
+# These are placeholders for Phase 0; Phase 1+ tests will pin them precisely.
+
+# Invariant #1: analytic simulator vs closed-form solutions.
+analytic_rtol: 1.0e-6
+analytic_atol: 1.0e-9
+
+# Forward sensitivities vs finite differences (sim/).
+sensitivity_rtol: 1.0e-3
+sensitivity_atol: 1.0e-5
+
+# Invariant #2: parameterization-invariance of identifiability.
+reparam_invariance_rtol: 1.0e-4
+
+# Invariant #5: mass-balance closure for closed systems.
+mass_balance_atol: 1.0e-8
+
+# Invariant #3: distinguishability oracle calibration targets (measured, not assumed).
+distinguish_nominal_fpr: 0.05
+distinguish_max_fpr: 0.10
+distinguish_max_fnr: 0.10

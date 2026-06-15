@@ -1,0 +1,7 @@
+# Run-level controls: output location, logging, tracking. No science here.
+name: dev
+output_dir: outputs/${run.name}
+log_level: INFO
+tracker:
+  backend: null        # null (no-op) | wandb
+  project: drrl

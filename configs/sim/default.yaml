@@ -1,0 +1,8 @@
+# ODE backend + integration controls. Backend is swappable behind a Protocol
+# (Phase 1). Defaults chosen for stiff PK/PD systems; see ADR-0001.
+backend: diffrax        # diffrax (JAX, autodiff sensitivities) | scipy (cross-check)
+solver: Kvaerno5        # implicit, good for stiff compartmental + TMDD systems
+rtol: 1.0e-8
+atol: 1.0e-10
+max_steps: 100000
+sensitivities: forward  # forward | none

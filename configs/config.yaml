@@ -1,0 +1,10 @@
+# Root Hydra config. Entrypoints compose this; everything tunable lives here
+# or in the grouped configs below. No magic numbers in code.
+defaults:
+  - tolerances: default
+  - reward: default
+  - sim: default
+  - run: default
+  - _self_
+
+seed: 0
