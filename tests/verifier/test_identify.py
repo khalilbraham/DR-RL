@@ -97,3 +97,10 @@ def test_prediction_change_grounds_the_rank_verdict(tol: DictConfig):
 def test_prediction_affecting_flags(tol: DictConfig):
     report = _report(one_comp_macro(), tol=tol)
     assert all(report.prediction_affecting.values())
+
+
+def test_empty_battery_raises():
+    import pytest as _pytest
+
+    with _pytest.raises(ValueError, match="non-empty"):
+        identifiability(one_comp_macro(), [], _BACKEND)

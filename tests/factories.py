@@ -107,6 +107,32 @@ def two_comp_micro() -> ModelSpec:
     )
 
 
+def two_comp_micro_matched() -> ModelSpec:
+    """Micro-rate 2-compartment model *numerically equivalent* to two_comp_macro.
+
+    Derived rates k10=CL/V1, k12=Q/V1, k21=Q/V2 with central volume V1 reproduce
+    the macro model's predictions exactly — an indistinguishable reparameterization.
+    Doses/observes ``A1`` so the same design applies as the macro form.
+    """
+    return ModelSpec(
+        compartments=(
+            Compartment(name="A1", unit=MG),
+            Compartment(name="A2", unit=MG),
+        ),
+        odes=(
+            ODETerm(target="A1", expr="-(k10+k12)*A1 + k21*A2"),
+            ODETerm(target="A2", expr="k12*A1 - k21*A2"),
+        ),
+        parameters=(
+            Parameter(name="k10", value=0.2, unit=PERH),  # CL/V1 = 2/10
+            Parameter(name="k12", value=0.1, unit=PERH),  # Q/V1  = 1/10
+            Parameter(name="k21", value=0.05, unit=PERH),  # Q/V2  = 1/20
+            Parameter(name="V1", value=10.0, unit=L),
+        ),
+        observation=ObservationModel(state="A1", divide_by="V1"),
+    )
+
+
 def two_comp_mm_elim() -> ModelSpec:
     """1-compartment with Michaelis-Menten (saturable) elimination."""
     return ModelSpec(

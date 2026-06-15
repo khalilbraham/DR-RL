@@ -58,6 +58,36 @@ the *scientific meaning* of a result are escalated to the user.
 - **Solver default `Kvaerno5`** (implicit, stiff-capable) for TMDD/PBPK later;
   scipy cross-check uses `LSODA`. See ADR-0001.
 
+## Phase 2 — Verifier core
+
+- **Tier-A checks are total** (never raise): schema/execution/units/plausibility
+  return structured reports so a bad proposal is a learning signal, not a crash.
+- **Mass balance is structural** (sign analysis of the symbolic net flux), which
+  is reparameterization-invariant and can fail (detects spurious mass creation),
+  unlike a numeric-accumulator check that conserves by construction.
+- **Identifiability metric = rank(S)/n_params** of the noise-normalized
+  prediction-sensitivity matrix over a held-out battery. Rank is invariant under
+  reparameterization; `kappa(S)` is not used (fails invariance, per the brief).
+  Verdicts are grounded by `prediction_change_along` (move along a direction,
+  measure RMS standardized prediction change).
+- **Identifiability tests use the scipy (FD) backend**: clean rank separation,
+  ~400x faster than diffrax autodiff (validated separately), and avoids
+  XLA-compiler pressure. Identifiability is backend-agnostic.
+- **Linear distinguishability fast path = Markov-parameter equality** `{c A^k b}`
+  (realization theory), equivalent to transfer-function identity but pure NumPy
+  and numerically robust. It is the ground truth the predictive oracle is
+  calibrated against; FP/FN measured on a constructed labeled pair battery.
+- **Distinguishability/identifiability need a meaningful noise model.** With a
+  degenerate (zero) error model the `sigma` floor (1e-9) amplifies numerical
+  residuals; analyses assume a realistic error model (e.g. proportional 0.1).
+- **Competitor set is open**: assembled at runtime from rollouts + a programmatic
+  enumeration prior + a replay buffer, de-duplicated by canonical key. Never a
+  hardcoded list (invariant #6).
+- **OED**: D-optimality (`log det` FIM) for parameter precision; a model-
+  discrimination utility (worst-case predictive noncentrality over competitors)
+  for abstention designs, with `resolves_ambiguity` gated by the chi-square
+  quantile.
+
 ## Known nondeterminism sources (cannot be fully eliminated)
 
 - **JAX/XLA**: reduction order on GPU/TPU is not bit-reproducible; results are
