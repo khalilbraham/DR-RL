@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from drrl.spec import (
     Compartment,
@@ -24,6 +25,10 @@ from drrl.spec import (
     Parameter,
     Unit,
 )
+
+if TYPE_CHECKING:
+    from drrl.sim.backend import Backend
+    from drrl.spec.model import Design
 
 _MG = Unit(expr="mg")
 _L = Unit(expr="L")
@@ -124,3 +129,38 @@ class CompetitorSet:
     def source_of(self, key: str) -> str | None:
         """The source that first contributed ``key``."""
         return self._source_of.get(key)
+
+
+def admissible_set(
+    reference: ModelSpec,
+    competitors: CompetitorSet,
+    battery: list[Design],
+    backend: Backend,
+    *,
+    sigma_floor: float = 1e-9,
+) -> tuple[str, ...]:
+    """Canonical keys of competitors indistinguishable from ``reference``.
+
+    Args:
+        reference: The reference model.
+        competitors: The (open) competitor set.
+        battery: Designs over which to judge distinguishability.
+        backend: Simulator.
+        sigma_floor: Noise floor.
+
+    Returns:
+        Canonical keys of the admissible (equivalence-class) members.
+    """
+    from drrl.verifier.distinguish import distinguish
+
+    keys: list[str] = []
+    for member in competitors.members():
+        try:
+            verdict = distinguish(
+                reference, member, battery, backend, sigma_floor=sigma_floor
+            ).verdict
+        except Exception:
+            continue
+        if verdict == "indistinguishable":
+            keys.append(member.canonicalize().key)
+    return tuple(keys)

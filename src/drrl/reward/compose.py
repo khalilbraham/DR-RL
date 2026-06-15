@@ -126,15 +126,17 @@ def compose_reward(
     r_pk = safe01(math.exp(-rel))
     r_pd = r_fit  # no separate PD observable in the MVE library (documented)
 
-    # Identifiability (prediction-based, on the hidden battery).
-    if report.identifiability is not None:
-        r_identify = safe01(report.identifiability.score)
-    else:
-        r_identify = safe01(
-            identifiability(
-                ctx.candidate, battery, backend, sigma_floor=sigma_floor
-            ).score
-        )
+    # Identifiability (prediction-based, on the hidden battery) at the practical
+    # threshold from config, so near-confounded ("flat") directions are penalized.
+    r_identify = safe01(
+        identifiability(
+            ctx.candidate,
+            battery,
+            backend,
+            rank_rtol=weights.identify_rank_rtol,
+            sigma_floor=sigma_floor,
+        ).score
+    )
 
     # Parsimony — gated by fit adequacy so it can never rescue an under-fit model.
     parsimony_raw = _parsimony(

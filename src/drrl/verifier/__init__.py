@@ -1,6 +1,10 @@
 """Layered scientific verifier; each check returns a structured report."""
 
-from drrl.verifier.competitors import CompetitorSet, enumerate_structures
+from drrl.verifier.competitors import (
+    CompetitorSet,
+    admissible_set,
+    enumerate_structures,
+)
 from drrl.verifier.distinguish import (
     distinguish,
     is_linear,
@@ -49,6 +53,7 @@ __all__ = [
     "SchemaReport",
     "UnitsReport",
     "VerifierReport",
+    "admissible_set",
     "check_execution",
     "check_plausibility",
     "check_schema",

@@ -36,7 +36,9 @@ def main() -> Path:
     cfg_hash = config_hash(cfg)
     log.info("seeded backends=%s config_hash=%s", seed_state.seeded, cfg_hash)
 
-    manifest = build_manifest(seed=int(cfg.seed), config_hash=cfg_hash, repo_root=_REPO_ROOT)
+    manifest = build_manifest(
+        seed=int(cfg.seed), config_hash=cfg_hash, repo_root=_REPO_ROOT
+    )
     out_dir = _REPO_ROOT / str(cfg.run.output_dir)
     path = manifest.write(out_dir / "manifest.json")
     log.info("wrote manifest -> %s", path)

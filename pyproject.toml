@@ -28,13 +28,16 @@ sim = [
     "diffrax>=0.5",
     "equinox>=0.11",
 ]
-# Phase 5+: LLM policy + GRPO training.
+# Phase 5+: LLM policy + GRPO training. Turing (sm_75) => fp16 + 4-bit QLoRA
+# (no bf16 / FlashAttention-2).
 rl = [
-    "torch>=2.2",
-    "transformers>=4.40",
-    "trl>=0.8",
-    "peft>=0.10",
+    "torch>=2.5,<2.7",  # CUDA 12.4 wheels (Turing sm_75; driver 550 has no cu13)
+    "transformers>=4.44",
+    "trl>=0.12",
+    "peft>=0.12",
     "datasets>=2.18",
+    "accelerate>=0.34",
+    "bitsandbytes>=0.43",
 ]
 # Optional experiment tracking (no-op fallback used when absent).
 track = [
@@ -54,6 +57,17 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# Pin torch (and its CUDA deps) to the CUDA 12.4 wheel index. The host driver is
+# 550.90 (CUDA 12.4 max); the default PyPI torch now ships cu13 wheels that need
+# driver >= 580 and would fail at runtime on this Turing card.
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/drrl"]
@@ -122,6 +136,13 @@ module = [
     "scipy.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Thin training bridge to third-party ML libs (trl/transformers/peft/bitsandbytes),
+# whose public typing is inconsistent across versions. The science layer stays
+# strict; these two modules only wire those libraries together.
+module = ["drrl.rl.grpo", "drrl.rl.evaluate"]
+disable_error_code = ["no-untyped-call", "attr-defined", "arg-type"]
 
 [[tool.mypy.overrides]]
 # Tests: invariant assertions are the point; full annotations are noise here.

@@ -28,3 +28,7 @@ fit_adequate_tau: 0.5
 ambiguous_min_admissible: 2
 # Parsimony penalty per extra parameter beyond the reference complexity.
 parsimony_penalty_per_param: 0.1
+# Practical-identifiability singular-value cutoff for the reward's r_identify
+# (looser than the structural default so near-confounded directions count as
+# non-identifiable -- this is what makes "fit-but-flat" penalizable).
+identify_rank_rtol: 1.0e-2

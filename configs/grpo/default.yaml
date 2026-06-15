@@ -1,0 +1,20 @@
+# GRPO MVE training settings. Tuned for a single 24 GB Turing card (TITAN RTX):
+# 4-bit QLoRA, fp16 (no bf16), short completions, modest group size.
+model_name: Qwen/Qwen2.5-3B-Instruct
+output_dir: outputs/grpo
+reward_mode: full          # full | no_identify | fit_only
+num_generations: 6
+beta: 0.04                 # KL anchor to the reference policy
+learning_rate: 1.0e-5
+max_steps: 60
+per_device_train_batch_size: 6
+gradient_accumulation_steps: 2
+max_completion_length: 96
+temperature: 0.9
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+diversity_weight: 0.1      # entropy-over-canonical-forms bonus within a group
+dataset_repeats: 40
+seed: 0
+sigma_floor: 1.0e-9

@@ -38,6 +38,7 @@ class RewardWeights:
     fit_adequate_tau: float = 0.5  # min r_fit for parsimony to count
     ambiguous_min_admissible: int = 2  # admissible-set size that makes abstention right
     parsimony_penalty_per_param: float = 0.1
+    identify_rank_rtol: float = 1e-2  # practical-identifiability cutoff for r_identify
 
     @classmethod
     def from_config(cls, cfg: DictConfig) -> RewardWeights:
@@ -60,6 +61,7 @@ class RewardWeights:
             parsimony_penalty_per_param=float(
                 cfg.get("parsimony_penalty_per_param", 0.1)
             ),
+            identify_rank_rtol=float(cfg.get("identify_rank_rtol", 1e-2)),
         )
 
 

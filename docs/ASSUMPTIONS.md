@@ -138,6 +138,35 @@ the *scientific meaning* of a result are escalated to the user.
   `ImitationPolicy` (structure->action table) on canonicalized targets. DoD test
   confirms SFT+RS yields a policy that commits Tier-A-valid specs.
 
+## Phase 5 — GRPO (MVE)
+
+- **torch pinned to CUDA 12.4** (`torch>=2.5,<2.7` via the PyTorch cu124 index).
+  The host driver is 550.90 (CUDA 12.4 max); the default PyPI torch now ships
+  cu13 wheels needing driver >= 580, which would fail on this TITAN RTX.
+- **Turing (sm_75) => fp16 + 4-bit QLoRA** (no bf16, no FlashAttention-2).
+- **GRPO is single-turn** for the MVE (one completion = one model-selection
+  decision), graded by the distinguishability-relative reward. Multi-turn LLM
+  edit trajectories (the env) are Phase-6 territory; TRL's GRPOTrainer is
+  completion-based.
+- **Reward funcs are first-party + torch-free** (CPU-tested); only `train_grpo`
+  and `generate_decisions` import torch/TRL (marked `# pragma: no cover` as GPU
+  integration code).
+- **Practical identifiability for the reward.** `r_identify` uses a *practical*
+  rank cutoff (`identify_rank_rtol=1e-2`), looser than the structural default
+  (1e-6): a Michaelis-Menten model dosed below saturation is structurally
+  full-rank but practically flat (fraction 0.667 at 1e-2 vs 1.0 at 1e-6). This
+  is what makes "fit-but-flat" penalizable and the manipulation check real.
+- **Manipulation check is provable at the reward level (no GPU):** the margin by
+  which abstaining beats committing the flat MM is larger with `r_identify` than
+  without (`tests/rl/test_grpo_reward.py::test_manipulation_check_at_reward_level`).
+  The trained-policy reproduction is the GPU run (`experiments/grpo_mve.py`).
+- **Reward modes:** `full`, `no_identify` (drop `r_identify` — the manipulation
+  check), `fit_only` (pure fit/PK baseline). Diversity bonus = entropy over
+  decision canonical-form buckets within a group.
+- **Candidate params are library defaults** (not refit per data) in the MVE; the
+  reward thus partly reflects parameter match. Acceptable for the structure-
+  selection MVE; per-candidate refitting is a later refinement.
+
 ## Known nondeterminism sources (cannot be fully eliminated)
 
 - **JAX/XLA**: reduction order on GPU/TPU is not bit-reproducible; results are
