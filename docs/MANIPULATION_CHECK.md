@@ -51,7 +51,40 @@ advantage the `no_identify` policy would need to prefer the flat model. A clean
 trained-policy separation therefore requires a setting where a parameter is
 **strongly non-identifiable while its structure is strictly required**.
 
-## What Phase 7 needs to make the trained ablation separate
+## Update (Phase 7): the obstruction is general — confirmed for TMDD too
+
+We added a full TMDD mechanism (`drrl.data.synth.tmdd`) and tested whether it
+provides a flat-but-unique regime. It does not, for the same reason:
+
+- **Fast binding** (large `kon`/`koff`): the individual binding rates are
+  non-identifiable (only `KD = koff/kon` matters; identifiable fraction ≈ 0.50),
+  **but** rapid-equilibrium TMDD reduces to ~linear/Michaelis-Menten, so a
+  1-compartment or MM model fits the curve well (rmse ≈ 0.4) — *not unique*.
+- **Slow binding**: TMDD is uniquely required (1c/MM fit worse), **but** then the
+  binding rates shape the curve and become *identifiable* — *not flat*.
+
+This now holds across **three** model families (1c/MM, 2c, TMDD), establishing a
+general principle:
+
+> For nested mechanistic models, a parameter being *practically non-identifiable*
+> means its effect is below the data's resolution, which means a reduced model
+> without it fits the data. Hence a model cannot be simultaneously **flat** and
+> the **unique** best fit. `r_identify` is therefore a *tie-breaker in the
+> ambiguous regime* (where a flat and an identifiable model fit equally), not a
+> unique-fit discriminator.
+
+**Consequence.** The literal trained-policy ablation ("remove `r_identify` →
+fit-but-flat returns") is *structurally precluded* for nested PK structures — it
+is not a matter of finding the right mechanism. The genuine validations of the
+identifiability principle are therefore:
+
+1. the **reward-level** tie-break (shown: full → identifiable, no_identify → flat
+   in the ambiguous regime),
+2. the **base → E-IRL** improvement (fit-but-flat trained out 0.50 → 0.00), and
+3. the decisive **reward-off, real-data internalization** test (Phase 8), which
+   does not depend on the ablation separating.
+
+## (Superseded) What a trained ablation would have needed
 
 Real mechanisms where parameter-level non-identifiability persists in a
 *required* structure:
