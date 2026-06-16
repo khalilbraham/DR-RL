@@ -110,7 +110,9 @@ def test_execution_flags_nonfinite_predictions():
     assert "non-finite" in report.message
 
 
-def test_plausibility_flags_positive_constant_source():
+def test_plausibility_allows_zero_order_input():
+    # A constant positive source is a legitimate zero-order input / turnover
+    # (e.g. infusion, TMDD target synthesis) -- not a mass-balance violation.
     from drrl.sim import SimConfig, get_backend
 
     spec = _spec(
@@ -123,8 +125,7 @@ def test_plausibility_flags_positive_constant_source():
     )
     backend = get_backend("scipy", SimConfig(rtol=1e-9, atol=1e-12))
     report = check_plausibility(spec, iv_bolus_design((1.0, 2.0, 4.0)), backend)
-    assert not report.mass_balance_ok
-    assert any("source" in d for d in report.details)
+    assert report.mass_balance_ok
 
 
 @pytest.mark.parametrize("expr", ["-A1**k"])

@@ -67,6 +67,7 @@ class CompiledModel:
         divide_by_index: Index of the volume parameter to divide by, or ``None``.
         log_transform: Whether the observation applies ``log``.
         scheduled_doses: ``(time, state_index, amount)`` boluses, time-sorted.
+        initial_state: State values at ``t=0`` before any dose, shape ``(n_states,)``.
     """
 
     state_names: tuple[str, ...]
@@ -77,6 +78,7 @@ class CompiledModel:
     divide_by_index: int | None
     log_transform: bool
     scheduled_doses: tuple[tuple[float, int, float], ...]
+    initial_state: np.ndarray
 
 
 def compile_model(spec: ModelSpec, design: Design) -> CompiledModel:
@@ -105,6 +107,8 @@ def compile_model(spec: ModelSpec, design: Design) -> CompiledModel:
         doses.append((float(d.time), state_index[d.compartment], float(d.amount)))
     doses.sort(key=lambda x: x[0])
 
+    initial_state = np.array([c.initial for c in spec.compartments], dtype=np.float64)
+
     return CompiledModel(
         state_names=state_names,
         param_names=param_names,
@@ -114,6 +118,7 @@ def compile_model(spec: ModelSpec, design: Design) -> CompiledModel:
         divide_by_index=divide_idx,
         log_transform=obs.transform == "log",
         scheduled_doses=tuple(doses),
+        initial_state=initial_state,
     )
 
 

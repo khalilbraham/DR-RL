@@ -59,7 +59,7 @@ class ScipyBackend:
         theta: np.ndarray,
     ) -> tuple[np.ndarray, bool]:
         initial, future = dose_schedule(compiled)
-        y = np.zeros(compiled.n_states, dtype=np.float64)
+        y = compiled.initial_state.astype(np.float64).copy()
         for idx, amt in initial:
             y[idx] += amt
         outs: list[np.ndarray] = []

@@ -46,10 +46,14 @@ class Compartment(_Frozen):
         name: Identifier used as the state symbol in ODE expressions.
         unit: Physical unit of the state (amount, e.g. ``mg``, or concentration,
             e.g. ``mg/L``).
+        initial: Initial value of the state at ``t=0`` before any dose (e.g. a
+            target baseline ``R0`` for TMDD, or a PD turnover baseline). Doses are
+            added on top of this.
     """
 
     name: str
     unit: Unit
+    initial: float = 0.0
 
 
 class Parameter(_Frozen):

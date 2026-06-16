@@ -86,7 +86,7 @@ class DiffraxBackend:
         t0 = jnp.asarray(min(0.0, float(sample_times[0])))
 
         def run(theta: jnp.ndarray, adj: Any) -> tuple[jnp.ndarray, bool]:
-            y0 = jnp.zeros(compiled.n_states)
+            y0 = jnp.asarray(compiled.initial_state)
             for idx, amt in initial:
                 y0 = y0.at[idx].add(amt)
             sol = diffrax.diffeqsolve(

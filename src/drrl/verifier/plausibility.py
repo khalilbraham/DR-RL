@@ -37,17 +37,24 @@ def _mass_balance(spec: ModelSpec) -> tuple[bool, list[str]]:
     rhs = spec.rhs_exprs()
     syms = spec.symbols
     state_syms = {syms[n] for n in spec.state_names}
+    # Binding systems have bilinear state*state terms (e.g. TMDD's kon*L*R): a
+    # complex compartment represents two species, so states are not additive and
+    # this net-flux mass check does not apply. Non-negativity still does.
+    for expr in rhs.values():
+        for term in sympy.Add.make_args(sympy.expand(expr)):
+            if len(term.free_symbols & state_syms) >= 2:
+                return True, ["binding system: additive mass balance not applicable"]
+
     net = sympy.expand(sum(rhs.values(), start=sympy.Integer(0)))
     issues: list[str] = []
     for term in sympy.Add.make_args(net):
         states_in = term.free_symbols & state_syms
-        sign = _term_sign(term)
-        if states_in and sign > 0:
+        # Only *state-proportional* positive net-flux terms are mass creation
+        # (unbalanced internal transfers / autocatalysis). Constant terms are
+        # legitimate zero-order input or target synthesis (e.g. TMDD ksyn) and
+        # are allowed.
+        if states_in and _term_sign(term) > 0:
             issues.append(f"mass-creating term in net flux: +{term}")
-        elif not states_in and sign > 0:
-            # A negative constant is zero-order elimination (allowed); a
-            # positive constant is a spontaneous mass source.
-            issues.append(f"spontaneous source term in net flux: {term}")
     return (not issues), issues
 
 

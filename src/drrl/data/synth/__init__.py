@@ -8,6 +8,7 @@ from drrl.data.synth.library import (
     indistinguishable_pairs,
     michaelis_menten,
     one_compartment,
+    tmdd,
     two_compartment,
     two_compartment_macro,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "indistinguishable_pairs",
     "michaelis_menten",
     "one_compartment",
+    "tmdd",
     "two_compartment",
     "two_compartment_macro",
 ]

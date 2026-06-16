@@ -128,6 +128,52 @@ def confounded() -> ModelSpec:
     )
 
 
+_NM = Unit(expr="nmol/L")
+_KON = Unit(expr="L/(nmol*h)")
+
+
+def tmdd(
+    kel: float = 0.1,
+    kon: float = 0.3,
+    koff: float = 0.5,
+    kint: float = 0.1,
+    kdeg: float = 0.11,
+    r0: float = 1.0,
+) -> ModelSpec:
+    """Full target-mediated drug disposition (Mager-Jusko), concentrations in nM.
+
+    Free drug ``L``, free target ``R`` (baseline ``r0``), complex ``P``. Target
+    synthesis is ``kdeg*r0`` so the target holds at ``r0`` before dosing (set via
+    the compartment initial value). Target binding makes clearance dose-dependent
+    (saturable) and is *not* reducible to a linear or Michaelis-Menten one-
+    compartment model when binding is visible — the canonical "fit-but-flat"
+    mechanism (individual ``kon``/``koff`` can be unidentifiable while ``KD`` is).
+
+    Observes free drug ``L``.
+    """
+    return ModelSpec(
+        compartments=(
+            Compartment(name="L", unit=_NM),
+            Compartment(name="R", unit=_NM, initial=r0),
+            Compartment(name="P", unit=_NM),
+        ),
+        odes=(
+            ODETerm(target="L", expr="-kel*L - kon*L*R + koff*P"),
+            ODETerm(target="R", expr="kdeg*r0 - kdeg*R - kon*L*R + koff*P"),
+            ODETerm(target="P", expr="kon*L*R - (koff+kint)*P"),
+        ),
+        parameters=(
+            Parameter(name="kel", value=kel, unit=_PERH),
+            Parameter(name="kon", value=kon, unit=_KON),
+            Parameter(name="koff", value=koff, unit=_PERH),
+            Parameter(name="kint", value=kint, unit=_PERH),
+            Parameter(name="kdeg", value=kdeg, unit=_PERH),
+            Parameter(name="r0", value=r0, unit=_NM),
+        ),
+        observation=ObservationModel(state="L", error=_PROP),
+    )
+
+
 def two_compartment_macro() -> ModelSpec:
     """2-compartment in macro constants — a reparam of :func:`two_compartment`."""
     return ModelSpec(
