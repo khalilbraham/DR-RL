@@ -117,8 +117,13 @@ class ModelEditEnv:
         resid = (pred - self._observed_data) / sigma
         return float(np.sqrt(np.mean(resid**2)))
 
-    def _observe(self) -> Observation:
-        candidate = build_spec(self._state)
+    def observe_state(self, state: ModelState) -> Observation:
+        """Return the (partial) observation for a hypothetical ``state``.
+
+        Pure: does not mutate the episode. Used by inference-time edit search to
+        preview the diagnostics of candidate edits without committing.
+        """
+        candidate = build_spec(state)
         report = verify(candidate, self.observed_design, self.backend)
         ident = 0.0
         if report.tierA_passed:
@@ -131,13 +136,16 @@ class ModelEditEnv:
         return Observation(
             turn=self._turn,
             turns_left=self.max_turns - self._turn,
-            structure=self._state.structure,
+            structure=state.structure,
             tierA_gates=report.tierA_gates,
             feedback=report.feedback,
             identifiable_fraction=ident,
             observed_rmse=self._observed_rmse(candidate),
             terminated=self._terminated,
         )
+
+    def _observe(self) -> Observation:
+        return self.observe_state(self._state)
 
     def _admissible_keys(self) -> tuple[str, ...]:
         """Canonical keys of enumerated structures indistinguishable from ref."""
