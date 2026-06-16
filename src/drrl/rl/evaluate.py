@@ -77,6 +77,49 @@ def score_decisions(
     )
 
 
+def flat_commit_rate(
+    decisions: dict[str, Decision],
+    registry: TaskRegistry,
+    backend: object,
+    *,
+    rank_rtol: float = 1e-2,
+    threshold: float = 0.95,
+    sigma_floor: float = 1e-9,
+) -> float:
+    """Fraction of ambiguous cases where the policy commits a *practically flat* model.
+
+    For each abstain/ambiguous case, if the policy committed a structure, we
+    best-fit that structure to the case data and check whether its parameters are
+    practically identifiable on the held-out battery. Committing a structure whose
+    parameters are non-identifiable is the "fit-but-flat" failure.
+    """
+    from drrl.env.state import ModelState, build_spec
+    from drrl.sim.fitting import fit_params
+    from drrl.verifier.identify import identifiability
+
+    cases = [c for c in registry.cases.values() if c.correct_action == "abstain"]
+    if not cases:
+        return 0.0
+    flats = 0
+    for case in cases:
+        d = decisions[case.case_id]
+        if d.abstain or not d.valid or d.structure is None:
+            continue
+        template = build_spec(ModelState.initial(d.structure))
+        target = backend.simulate(case.reference, case.observed_design).observed
+        fitted, _ = fit_params(template, target, case.observed_design, backend)
+        frac = identifiability(
+            fitted,
+            list(case.hidden_battery),
+            backend,
+            rank_rtol=rank_rtol,
+            sigma_floor=sigma_floor,
+        ).identifiable_fraction
+        if frac < threshold:
+            flats += 1
+    return flats / len(cases)
+
+
 def generate_decisions(  # pragma: no cover
     registry: TaskRegistry,
     *,

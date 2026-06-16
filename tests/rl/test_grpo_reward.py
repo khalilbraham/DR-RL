@@ -68,12 +68,20 @@ def test_manipulation_check_at_reward_level():
     assert margin_full > margin_noid
 
 
-def test_abstain_is_best_action_on_ambiguous_case():
-    rewards = {
-        a: _reward("full", "abstain_mm_low", f"ANSWER: {a}")
-        for a in ("abstain", "one_compartment", "two_compartment", "michaelis_menten")
-    }
-    assert max(rewards, key=lambda k: rewards[k]) == "abstain"
+def test_identify_term_flips_flat_to_identifiable():
+    # The manipulation check at the argmax level (best-fit scoring): on a
+    # sub-saturation case the flat Michaelis-Menten model fits as well as the
+    # identifiable 1-compartment model. With r_identify the reward's top choice is
+    # NOT the flat model; remove r_identify and the flat model becomes the top
+    # choice ("fit-but-flat returns").
+    actions = ["one_compartment", "two_compartment", "michaelis_menten", "abstain"]
+
+    def argmax(mode: str) -> str:
+        r = {a: _reward(mode, "abstain_mm_low", f"ANSWER: {a}") for a in actions}
+        return max(r, key=lambda k: r[k])
+
+    assert argmax("full") != "michaelis_menten"
+    assert argmax("no_identify") == "michaelis_menten"
 
 
 # --- diversity bonus ---------------------------------------------------------
@@ -110,6 +118,31 @@ def test_weights_for_mode():
 
 
 # --- evaluation metrics ------------------------------------------------------
+
+
+def test_flat_commit_rate_detects_non_identifiable_commit():
+    from drrl.rl import flat_commit_rate
+
+    # Committing the flat Michaelis-Menten model on the sub-saturation cases is a
+    # fit-but-flat failure; committing the identifiable 1-compartment is not.
+    flat = {
+        cid: (
+            Decision("michaelis_menten", abstain=False, valid=True)
+            if c.correct_action == "abstain"
+            else Decision(c.correct_structure, abstain=False, valid=True)
+        )
+        for cid, c in _REG.cases.items()
+    }
+    identifiable = {
+        cid: (
+            Decision("one_compartment", abstain=False, valid=True)
+            if c.correct_action == "abstain"
+            else Decision(c.correct_structure, abstain=False, valid=True)
+        )
+        for cid, c in _REG.cases.items()
+    }
+    assert flat_commit_rate(flat, _REG, _BACKEND) > 0.5
+    assert flat_commit_rate(identifiable, _REG, _BACKEND) == 0.0
 
 
 def test_score_decisions_metrics():

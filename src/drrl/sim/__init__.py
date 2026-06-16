@@ -5,6 +5,7 @@ extra) so that importing :mod:`drrl.sim` does not hard-depend on JAX.
 """
 
 from drrl.sim.backend import Backend, SimConfig, compile_model
+from drrl.sim.fitting import fit_params, set_natural_params
 from drrl.sim.result import SimulationResult
 
 
@@ -38,5 +39,7 @@ __all__ = [
     "SimConfig",
     "SimulationResult",
     "compile_model",
+    "fit_params",
     "get_backend",
+    "set_natural_params",
 ]

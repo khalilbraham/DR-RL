@@ -19,7 +19,8 @@ from drrl.reward.context import RewardContext, RewardWeights
 from drrl.rl.decision import Decision, parse_completion
 from drrl.rl.tasks import TaskCase, TaskRegistry
 from drrl.sim.backend import Backend
-from drrl.spec import Design, Dose, Unit
+from drrl.sim.fitting import fit_params
+from drrl.spec import Design, Dose, ModelSpec, Unit
 from drrl.verifier.competitors import CompetitorSet, admissible_set
 from drrl.verifier.pipeline import verify
 
@@ -29,6 +30,23 @@ _PROBE = Design(
     doses=(Dose(compartment="A1", amount=300.0, unit=Unit(expr="mg")),),
     sample_times=(0.1, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 24.0),
 )
+
+# Cache of best-fit candidates per (structure, case_id): the fitted parameters
+# depend only on the structure and the case's reference data, not on the LLM, so
+# we fit each once and reuse it across every completion and reward mode.
+_FIT_CACHE: dict[tuple[str, str], ModelSpec] = {}
+
+
+def _fitted_candidate(structure: str, case: TaskCase, backend: Backend) -> ModelSpec:
+    """Best-fit model of ``structure`` to the case's reference data (cached)."""
+    key = (structure, case.case_id)
+    cached = _FIT_CACHE.get(key)
+    if cached is None:
+        template = build_spec(ModelState.initial(structure))
+        target = backend.simulate(case.reference, case.observed_design).observed
+        cached, _ = fit_params(template, target, case.observed_design, backend)
+        _FIT_CACHE[key] = cached
+    return cached
 
 
 def weights_for_mode(mode: RewardMode, base: RewardWeights) -> RewardWeights:
@@ -72,12 +90,12 @@ def _decision_reward(
     )
 
     if decision.abstain:
-        candidate = build_spec(ModelState.initial("one_compartment"))
+        candidate = _fitted_candidate("one_compartment", case, backend)
         action_proposed: Design | None = _PROBE
         action = "abstain"
     else:
         assert decision.structure is not None
-        candidate = build_spec(ModelState.initial(decision.structure))
+        candidate = _fitted_candidate(decision.structure, case, backend)
         action_proposed = None
         action = "commit"
 

@@ -19,7 +19,12 @@ from dataclasses import replace
 from pathlib import Path
 
 from drrl.rl.decision import Decision
-from drrl.rl.evaluate import EvalReport, generate_decisions, score_decisions
+from drrl.rl.evaluate import (
+    EvalReport,
+    flat_commit_rate,
+    generate_decisions,
+    score_decisions,
+)
 from drrl.rl.grpo import GRPOSettings, make_reward_funcs, train_grpo
 from drrl.rl.tasks import TaskRegistry, build_registry
 from drrl.sim import SimConfig, get_backend
@@ -60,9 +65,12 @@ def _evaluate(
         registry, model_name=model_name, adapter_dir=adapter_dir
     )
     report: EvalReport = score_decisions(decisions, registry)
+    backend = get_backend("scipy", SimConfig(rtol=1e-8, atol=1e-10))
     return {
         **dataclasses.asdict(report),
         "mean_full_reward": _mean_full_reward(decisions, registry),
+        # Identifiability-aware: committed a practically non-identifiable model.
+        "flat_commit_identify": flat_commit_rate(decisions, registry, backend),
         "decisions": {cid: _completion(d) for cid, d in decisions.items()},
     }
 
@@ -138,11 +146,11 @@ def _log_manipulation_check(results: dict[str, object]) -> None:
     for mode in ("base", "full", "no_identify", "fit_only"):
         if mode in results:
             log.info(
-                "%-12s full_reward=%s abstain=%s flat_commit=%s commit_acc=%s",
+                "%-12s full_reward=%s flat_commit_identify=%s abstain=%s commit_acc=%s",
                 mode,
                 metric(mode, "mean_full_reward"),
+                metric(mode, "flat_commit_identify"),
                 metric(mode, "abstain_rate_on_abstain_cases"),
-                metric(mode, "flat_commit_rate"),
                 metric(mode, "commit_accuracy"),
             )
 
